@@ -37,7 +37,7 @@ CURRENT_URL = "https://api.open-meteo.com/v1/forecast"
 SYDNEY_COORDS = {"latitude": -33.8678, "longitude": 151.2073}
 
 # Model file paths - Use relative paths for deployment
-RAIN_MODEL_PATH = os.path.join(MODELS_DIR, "rain_classifier_best_DummyClassifier_20250928_033307.joblib")
+RAIN_MODEL_PATH = os.path.join(MODELS_DIR, "rain_classifier_best_RandomForest_tuned_topk_20250929_004019.joblib")
 PRECIPITATION_MODEL_PATH = os.path.join(MODELS_DIR, "precipitation_regressor_best_GradientBoosting_20250928_052241.joblib")
 
 class WeatherDataFetcher:
@@ -247,15 +247,36 @@ async def predict_rain(date: str = Query(..., description="Date in YYYY-MM-DD fo
         raise HTTPException(status_code=503, detail="Rain prediction model not available")
     
     try:
-        # Validate date format
-        input_date_obj = datetime.strptime(date, "%Y-%m-%d")
+        # Validate date format first
+        try:
+            input_date_obj = datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Please use YYYY-MM-DD format (e.g., 2023-12-25)")
+        
+        # Check if date is reasonable (not too far in future/past)
+        current_date = datetime.now()
+        max_future_days = 14  # Open-Meteo forecast limit
+        max_past_days = 365 * 2  # 2 years back
+        
+        days_diff = (input_date_obj - current_date).days
+        
+        if days_diff > max_future_days:
+            raise HTTPException(status_code=400, detail=f"Date too far in future. Maximum {max_future_days} days ahead supported.")
+        
+        if days_diff < -max_past_days:
+            raise HTTPException(status_code=400, detail=f"Date too far in past. Maximum {max_past_days} days back supported.")
+        
+        # Calculate prediction date (exactly 7 days from input date)
         prediction_date = (input_date_obj + timedelta(days=7)).strftime("%Y-%m-%d")
         
         # Fetch weather data for the input date
         weather_data = WeatherDataFetcher.fetch_weather_for_date(date)
         daily_features = weather_data["daily_features"]
         
-        # Prepare features for model (in the same order as training)
+        # Check model's expected feature count
+        expected_features = getattr(rain_model, 'n_features_in_', None)
+        
+        # Updated feature order to match your new model
         feature_order = [
             "temperature_2m_max", "temperature_2m_min", "temperature_2m_mean",
             "relative_humidity_2m_max", "relative_humidity_2m_min",
@@ -267,8 +288,8 @@ async def predict_rain(date: str = Query(..., description="Date in YYYY-MM-DD fo
         # Handle missing features with defaults
         features = []
         for feature in feature_order:
-            if feature in daily_features:
-                features.append(daily_features[feature])
+            if feature in daily_features and daily_features[feature] is not None:
+                features.append(float(daily_features[feature]))
             else:
                 # Use reasonable defaults for missing features
                 default_values = {
@@ -280,20 +301,31 @@ async def predict_rain(date: str = Query(..., description="Date in YYYY-MM-DD fo
                 }
                 features.append(default_values.get(feature, 0.0))
         
+        # Adjust feature count to match model expectations
+        if expected_features and len(features) != expected_features:
+            if len(features) > expected_features:
+                features = features[:expected_features]  # Trim excess features
+            else:
+                # Pad with zeros if too few features
+                features.extend([0.0] * (expected_features - len(features)))
+        
+        logger.info(f"Using {len(features)} features for rain prediction")
+        
         # Make prediction
         X = np.array(features).reshape(1, -1)
         prediction = rain_model.predict(X)[0]
         
+        # Return response in the exact format specified
         return {
             "input_date": date,
             "prediction": {
                 "date": prediction_date,
-                "will_rain": bool(prediction)
+                "will_rain": bool(prediction)  # Ensures true/false (not TRUE/FALSE)
             }
         }
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid date format. Use YYYY-MM-DD: {str(e)}")
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
     except Exception as e:
         logger.error(f"Error in rain prediction: {e}")
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
@@ -305,14 +337,34 @@ async def predict_precipitation(date: str = Query(..., description="Date in YYYY
         raise HTTPException(status_code=503, detail="Precipitation prediction model not available")
     
     try:
-        # Validate date format
-        input_date_obj = datetime.strptime(date, "%Y-%m-%d")
+        # Validate date format first
+        try:
+            input_date_obj = datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Please use YYYY-MM-DD format (e.g., 2023-12-25)")
+        
+        # Check if date is reasonable (not too far in future/past)
+        current_date = datetime.now()
+        max_future_days = 14  # Open-Meteo forecast limit
+        max_past_days = 365 * 2  # 2 years back
+        
+        days_diff = (input_date_obj - current_date).days
+        
+        if days_diff > max_future_days:
+            raise HTTPException(status_code=400, detail=f"Date too far in future. Maximum {max_future_days} days ahead supported.")
+        
+        if days_diff < -max_past_days:
+            raise HTTPException(status_code=400, detail=f"Date too far in past. Maximum {max_past_days} days back supported.")
+        
         start_date = (input_date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
         end_date = (input_date_obj + timedelta(days=3)).strftime("%Y-%m-%d")
         
         # Fetch weather data for the input date
         weather_data = WeatherDataFetcher.fetch_weather_for_date(date)
         hourly_features = weather_data["hourly_features"]
+        
+        # Check model's expected feature count
+        expected_features = getattr(precipitation_model, 'n_features_in_', None)
         
         # Prepare features for model (in the same order as training)
         feature_order = [
@@ -325,8 +377,8 @@ async def predict_precipitation(date: str = Query(..., description="Date in YYYY
         # Handle missing features with defaults
         features = []
         for feature in feature_order:
-            if feature in hourly_features:
-                features.append(hourly_features[feature])
+            if feature in hourly_features and hourly_features[feature] is not None:
+                features.append(float(hourly_features[feature]))
             else:
                 # Use reasonable defaults for missing features
                 default_values = {
@@ -336,6 +388,16 @@ async def predict_precipitation(date: str = Query(..., description="Date in YYYY
                     "surface_pressure": 1015.0, "cloud_cover_low": 30.0, "cloud_cover_mid": 20.0, "cloud_cover_high": 10.0
                 }
                 features.append(default_values.get(feature, 0.0))
+        
+        # Adjust feature count to match model expectations
+        if expected_features and len(features) != expected_features:
+            if len(features) > expected_features:
+                features = features[:expected_features]  # Trim excess features
+            else:
+                # Pad with zeros if too few features
+                features.extend([0.0] * (expected_features - len(features)))
+        
+        logger.info(f"Using {len(features)} features for precipitation prediction")
         
         # Make prediction
         X = np.array(features).reshape(1, -1)
@@ -353,8 +415,8 @@ async def predict_precipitation(date: str = Query(..., description="Date in YYYY
             }
         }
         
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid date format. Use YYYY-MM-DD: {str(e)}")
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions
     except Exception as e:
         logger.error(f"Error in precipitation prediction: {e}")
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
