@@ -4,7 +4,7 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-AI-powered weather prediction REST API for Sydney, Australia using machine learning models trained on historical weather data.
+Weather prediction REST API for Sydney, Australia using machine learning models trained on historical weather data.
 
 ## Overview
 
