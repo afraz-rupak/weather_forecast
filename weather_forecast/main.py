@@ -30,13 +30,13 @@ app = FastAPI(
 rain_model = None
 precipitation_model = None
 
-# Configuration
-MODELS_DIR = "/Users/afrazrupak/weather_forecast/weather_forecast/models"
+# Configuration - Use environment variables for deployment
+MODELS_DIR = os.getenv("MODELS_DIR", os.path.join(os.path.dirname(__file__), "..", "models"))
 BASE_URL = "https://archive-api.open-meteo.com/v1/archive"
 CURRENT_URL = "https://api.open-meteo.com/v1/forecast"
 SYDNEY_COORDS = {"latitude": -33.8678, "longitude": 151.2073}
 
-# Model file paths
+# Model file paths - Use relative paths for deployment
 RAIN_MODEL_PATH = os.path.join(MODELS_DIR, "rain_classifier_best_DummyClassifier_20250928_033307.joblib")
 PRECIPITATION_MODEL_PATH = os.path.join(MODELS_DIR, "precipitation_regressor_best_GradientBoosting_20250928_052241.joblib")
 
