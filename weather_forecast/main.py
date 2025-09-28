@@ -1,10 +1,3 @@
-"""
-Weather Prediction FastAPI Service
-
-This API provides weather predictions using trained ML models with real-time weather data fetching.
-User only needs to provide a date, and the system automatically fetches weather data from Open-Meteo API.
-"""
-
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
@@ -41,11 +34,9 @@ RAIN_MODEL_PATH = os.path.join(MODELS_DIR, "rain_classifier_best_RandomForest_tu
 PRECIPITATION_MODEL_PATH = os.path.join(MODELS_DIR, "precipitation_regressor_best_GradientBoosting_20250928_052241.joblib")
 
 class WeatherDataFetcher:
-    """Fetch real-time weather data from Open-Meteo API"""
     
     @staticmethod
     def fetch_weather_for_date(input_date: str) -> Dict:
-        """Fetch weather data for a specific date"""
         date_obj = datetime.strptime(input_date, "%Y-%m-%d")
         current_date = datetime.now()
         
@@ -112,7 +103,6 @@ class WeatherDataFetcher:
     
     @staticmethod
     def _fetch_forecast_data(input_date: str) -> Dict:
-        """Fetch forecast weather data for future dates"""
         try:
             forecast_params = {
                 **SYDNEY_COORDS,
@@ -126,7 +116,6 @@ class WeatherDataFetcher:
             response.raise_for_status()
             data = response.json()
             
-            # Find the specific date
             target_date = datetime.strptime(input_date, "%Y-%m-%d").date()
             daily_times = [datetime.fromisoformat(t).date() for t in data["daily"]["time"]]
             
@@ -135,7 +124,7 @@ class WeatherDataFetcher:
             
             date_index = daily_times.index(target_date)
             
-            # Extract forecast data
+
             daily_features = {}
             for feature in data["daily"]:
                 if feature != "time":
@@ -158,7 +147,6 @@ class WeatherDataFetcher:
             raise HTTPException(status_code=500, detail=f"Failed to fetch forecast data: {str(e)}")
 
 def load_models():
-    """Load trained models"""
     global rain_model, precipitation_model
     
     try:
@@ -179,7 +167,6 @@ def load_models():
 
 @app.on_event("startup")
 async def startup_event():
-    """Load models when the application starts"""
     load_models()
 
 @app.get("/")
@@ -224,7 +211,7 @@ async def root():
 
 @app.get("/health/")
 async def health_check():
-    """Health check endpoint"""
+ 
     model_status = {
         "rain_model_loaded": rain_model is not None,
         "precipitation_model_loaded": precipitation_model is not None,
@@ -242,21 +229,21 @@ async def health_check():
 
 @app.get("/predict/rain/")
 async def predict_rain(date: str = Query(..., description="Date in YYYY-MM-DD format for which to predict rain 7 days ahead")):
-    """Predict if it will rain in exactly 7 days"""
+
     if rain_model is None:
         raise HTTPException(status_code=503, detail="Rain prediction model not available")
     
     try:
-        # Validate date format first
+
         try:
             input_date_obj = datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Please use YYYY-MM-DD format (e.g., 2023-12-25)")
         
-        # Check if date is reasonable (not too far in future/past)
+ 
         current_date = datetime.now()
-        max_future_days = 14  # Open-Meteo forecast limit
-        max_past_days = 365 * 2  # 2 years back
+        max_future_days = 14  
+        max_past_days = 365 * 2  
         
         days_diff = (input_date_obj - current_date).days
         
@@ -266,17 +253,17 @@ async def predict_rain(date: str = Query(..., description="Date in YYYY-MM-DD fo
         if days_diff < -max_past_days:
             raise HTTPException(status_code=400, detail=f"Date too far in past. Maximum {max_past_days} days back supported.")
         
-        # Calculate prediction date (exactly 7 days from input date)
+
         prediction_date = (input_date_obj + timedelta(days=7)).strftime("%Y-%m-%d")
         
-        # Fetch weather data for the input date
+
         weather_data = WeatherDataFetcher.fetch_weather_for_date(date)
         daily_features = weather_data["daily_features"]
         
-        # Check model's expected feature count
+ 
         expected_features = getattr(rain_model, 'n_features_in_', None)
         
-        # Updated feature order to match your new model
+
         feature_order = [
             "temperature_2m_max", "temperature_2m_min", "temperature_2m_mean",
             "relative_humidity_2m_max", "relative_humidity_2m_min",
@@ -285,13 +272,13 @@ async def predict_rain(date: str = Query(..., description="Date in YYYY-MM-DD fo
             "shortwave_radiation_sum", "daylight_duration"
         ]
         
-        # Handle missing features with defaults
+
         features = []
         for feature in feature_order:
             if feature in daily_features and daily_features[feature] is not None:
                 features.append(float(daily_features[feature]))
             else:
-                # Use reasonable defaults for missing features
+
                 default_values = {
                     "temperature_2m_max": 20.0, "temperature_2m_min": 15.0, "temperature_2m_mean": 17.5,
                     "relative_humidity_2m_max": 80.0, "relative_humidity_2m_min": 60.0,
@@ -301,31 +288,31 @@ async def predict_rain(date: str = Query(..., description="Date in YYYY-MM-DD fo
                 }
                 features.append(default_values.get(feature, 0.0))
         
-        # Adjust feature count to match model expectations
+       
         if expected_features and len(features) != expected_features:
             if len(features) > expected_features:
-                features = features[:expected_features]  # Trim excess features
+                features = features[:expected_features] 
             else:
-                # Pad with zeros if too few features
+             
                 features.extend([0.0] * (expected_features - len(features)))
         
         logger.info(f"Using {len(features)} features for rain prediction")
         
-        # Make prediction
+ 
         X = np.array(features).reshape(1, -1)
         prediction = rain_model.predict(X)[0]
         
-        # Return response in the exact format specified
+
         return {
             "input_date": date,
             "prediction": {
                 "date": prediction_date,
-                "will_rain": bool(prediction)  # Ensures true/false (not TRUE/FALSE)
+                "will_rain": bool(prediction) 
             }
         }
         
     except HTTPException:
-        raise  # Re-raise HTTP exceptions
+        raise  
     except Exception as e:
         logger.error(f"Error in rain prediction: {e}")
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
@@ -337,16 +324,16 @@ async def predict_precipitation(date: str = Query(..., description="Date in YYYY
         raise HTTPException(status_code=503, detail="Precipitation prediction model not available")
     
     try:
-        # Validate date format first
+      
         try:
             input_date_obj = datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Please use YYYY-MM-DD format (e.g., 2023-12-25)")
         
-        # Check if date is reasonable (not too far in future/past)
+     
         current_date = datetime.now()
-        max_future_days = 14  # Open-Meteo forecast limit
-        max_past_days = 365 * 2  # 2 years back
+        max_future_days = 14 
+        max_past_days = 365 * 2  # 
         
         days_diff = (input_date_obj - current_date).days
         
@@ -359,14 +346,14 @@ async def predict_precipitation(date: str = Query(..., description="Date in YYYY
         start_date = (input_date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
         end_date = (input_date_obj + timedelta(days=3)).strftime("%Y-%m-%d")
         
-        # Fetch weather data for the input date
+    
         weather_data = WeatherDataFetcher.fetch_weather_for_date(date)
         hourly_features = weather_data["hourly_features"]
         
-        # Check model's expected feature count
+      
         expected_features = getattr(precipitation_model, 'n_features_in_', None)
         
-        # Prepare features for model (in the same order as training)
+     
         feature_order = [
             "temperature_2m", "relative_humidity_2m", "dew_point_2m",
             "precipitation", "rain", "pressure_msl", "cloud_cover",
@@ -374,13 +361,13 @@ async def predict_precipitation(date: str = Query(..., description="Date in YYYY
             "surface_pressure", "cloud_cover_low", "cloud_cover_mid", "cloud_cover_high"
         ]
         
-        # Handle missing features with defaults
+  
         features = []
         for feature in feature_order:
             if feature in hourly_features and hourly_features[feature] is not None:
                 features.append(float(hourly_features[feature]))
             else:
-                # Use reasonable defaults for missing features
+   
                 default_values = {
                     "temperature_2m": 18.0, "relative_humidity_2m": 70.0, "dew_point_2m": 12.0,
                     "precipitation": 0.0, "rain": 0.0, "pressure_msl": 1013.25, "cloud_cover": 50.0,
@@ -389,21 +376,21 @@ async def predict_precipitation(date: str = Query(..., description="Date in YYYY
                 }
                 features.append(default_values.get(feature, 0.0))
         
-        # Adjust feature count to match model expectations
+
         if expected_features and len(features) != expected_features:
             if len(features) > expected_features:
-                features = features[:expected_features]  # Trim excess features
+                features = features[:expected_features]  #
             else:
-                # Pad with zeros if too few features
+               
                 features.extend([0.0] * (expected_features - len(features)))
         
         logger.info(f"Using {len(features)} features for precipitation prediction")
         
-        # Make prediction
+      
         X = np.array(features).reshape(1, -1)
         prediction = precipitation_model.predict(X)[0]
         
-        # Ensure prediction is not negative
+  
         prediction = max(0.0, float(prediction))
         
         return {
@@ -416,7 +403,7 @@ async def predict_precipitation(date: str = Query(..., description="Date in YYYY
         }
         
     except HTTPException:
-        raise  # Re-raise HTTP exceptions
+        raise  
     except Exception as e:
         logger.error(f"Error in precipitation prediction: {e}")
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
