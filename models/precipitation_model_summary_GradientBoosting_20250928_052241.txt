@@ -1,0 +1,49 @@
+
+PRECIPITATION REGRESSION MODEL SUMMARY
+=====================================
+
+Model Information:
+- Name: GradientBoosting
+- Type: GradientBoostingRegressor
+- Problem Type: Regression (72-hour precipitation forecast)
+- Training Date: 2025-09-28 05:22:41
+- Target Variable: precipitation_next_72h
+
+Performance Metrics (Test Set):
+- RMSE: 12.9907 mm
+- MAE: 8.6012 mm
+- R² Score: 0.1848
+
+Dataset Information:
+- Training Samples: 38496
+- Test Samples: 9552
+- Features Used: 14
+- Feature List: temperature_2m, relative_humidity_2m, dew_point_2m, precipitation, rain, pressure_msl, cloud_cover, wind_speed_10m, wind_direction_10m, shortwave_radiation, surface_pressure, cloud_cover_low, cloud_cover_mid, cloud_cover_high
+
+Files Saved:
+- Model (Pickle): precipitation_regressor_best_GradientBoosting_20250928_052241.pkl
+- Model (Joblib): precipitation_regressor_best_GradientBoosting_20250928_052241.joblib
+- Metadata: precipitation_regressor_metadata_GradientBoosting_20250928_052241.json
+- Feature Importance: feature_importance_GradientBoosting_20250928_052241.csv
+
+Model Interpretation:
+- RMSE of 12.99mm means predictions are typically within ±12.99mm of actual values
+- R² of 0.185 means the model explains 18.5% of precipitation variance
+- This model predicts precipitation amounts for the next 72 hours (3 days)
+
+Usage Instructions:
+To load and use this model:
+```python
+import joblib
+import pandas as pd
+model = joblib.load('/Users/afrazrupak/weather_forecast/weather_forecast/models/precipitation_regressor_best_GradientBoosting_20250928_052241.joblib')
+# Prepare your data with the same features: temperature_2m, relative_humidity_2m, dew_point_2m, precipitation, rain, pressure_msl, cloud_cover, wind_speed_10m, wind_direction_10m, shortwave_radiation, surface_pressure, cloud_cover_low, cloud_cover_mid, cloud_cover_high
+predictions = model.predict(new_data)
+# Predictions are in mm of precipitation over next 72 hours
+```
+
+Business Impact:
+- Enables quantitative precipitation forecasting for water management
+- Supports agricultural irrigation planning with specific rainfall amounts
+- Assists in flood risk assessment with precipitation intensity predictions
+- Facilitates emergency preparedness based on expected precipitation levels

@@ -1,0 +1,35 @@
+
+RAIN PREDICTION MODEL SUMMARY
+==============================
+
+Model Information:
+- Name: DummyClassifier
+- Type: DummyClassifier
+- Training Date: 2025-09-28 03:33:25
+- Target Variable: rain_in_7_days
+
+Performance Metrics:
+- Accuracy: 0.5796
+- Precision: 0.5796
+- Recall: 1.0000
+- F1 Score: 0.7339
+- ROC AUC: 0.5000
+
+Dataset Information:
+- Training Samples: 1606
+- Test Samples: 402
+- Features Used: 16
+
+Files Saved:
+- Model (Pickle): rain_classifier_best_DummyClassifier_20250928_033307.pkl
+- Model (Joblib): rain_classifier_best_DummyClassifier_20250928_033307.joblib
+- Metadata: rain_classifier_metadata_DummyClassifier_20250928_033307.json
+- Feature Importance: N/A
+
+Usage Instructions:
+To load and use this model:
+```python
+import joblib
+model = joblib.load('/Users/afrazrupak/weather_forecast/weather_forecast/models/rain_classifier_best_DummyClassifier_20250928_033307.joblib')
+predictions = model.predict(new_data)
+```

@@ -1,0 +1,40 @@
+{
+  "model_name": "DummyClassifier",
+  "model_type": "DummyClassifier",
+  "timestamp": "20250928_033307",
+  "training_date": "2025-09-28T03:33:15.392853",
+  "performance_metrics": {
+    "accuracy": 0.5796019900497512,
+    "precision": 0.5796019900497512,
+    "recall": 1.0,
+    "f1_score": 0.7338582677165354,
+    "roc_auc": 0.5
+  },
+  "model_parameters": {
+    "constant": null,
+    "random_state": 42,
+    "strategy": "most_frequent"
+  },
+  "features_used": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "pressure_msl_mean",
+    "wind_speed_10m_max",
+    "wind_speed_10m_mean",
+    "wind_direction_10m_dominant",
+    "precipitation_sum",
+    "rain_sum",
+    "shortwave_radiation_sum",
+    "daylight_duration",
+    "day",
+    "month",
+    "year"
+  ],
+  "training_samples": 1606,
+  "test_samples": 402,
+  "target_variable": "rain_in_7_days",
+  "data_split_method": "chronological_80_20"
+}
