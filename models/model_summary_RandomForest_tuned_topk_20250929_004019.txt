@@ -1,0 +1,35 @@
+
+RAIN PREDICTION MODEL SUMMARY
+==============================
+
+Model Information:
+- Name: RandomForest_tuned_topk
+- Type: RandomForestClassifier
+- Training Date: 2025-09-29 00:42:11
+- Target Variable: rain_in_7_days
+
+Performance Metrics:
+- Accuracy: 0.5995
+- Precision: 0.6224
+- Recall: 0.7854
+- F1 Score: 0.6945
+- ROC AUC: 0.5885
+
+Dataset Information:
+- Training Samples: 1606
+- Test Samples: 402
+- Features Used: 16
+
+Files Saved:
+- Model (Pickle): rain_classifier_best_RandomForest_tuned_topk_20250929_004019.pkl
+- Model (Joblib): rain_classifier_best_RandomForest_tuned_topk_20250929_004019.joblib
+- Metadata: rain_classifier_metadata_RandomForest_tuned_topk_20250929_004019.json
+- Feature Importance: feature_importance_RandomForest_tuned_topk_20250929_004019.csv
+
+Usage Instructions:
+To load and use this model:
+```python
+import joblib
+model = joblib.load('/Users/afrazrupak/weather_forecast/weather_forecast/models/rain_classifier_best_RandomForest_tuned_topk_20250929_004019.joblib')
+predictions = model.predict(new_data)
+```

@@ -1,0 +1,11 @@
+feature,importance
+daylight_duration,0.1430824896800924
+temperature_2m_min,0.12174991764638257
+wind_direction_10m_dominant,0.11002606468376255
+shortwave_radiation_sum,0.10995160758927622
+pressure_msl_mean,0.10768040666907112
+temperature_2m_mean,0.10560088470080167
+temperature_2m_max,0.09923579591195983
+relative_humidity_2m_min,0.09081532147921735
+relative_humidity_2m_max,0.07240764213533281
+month,0.039449869504103556
